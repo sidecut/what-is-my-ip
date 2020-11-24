@@ -2,10 +2,15 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+type returnValueType struct {
+	IpAddresses []string
+}
 
 func main() {
 	// Echo instance
@@ -17,7 +22,17 @@ func main() {
 
 	// Route => handler
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!\n")
+		ips := make([]string, 0)
+		ips = append(ips, c.Request().RemoteAddr)
+		forwardedForHeader := c.Request().Header.Get("x-forwarded-for")
+		if forwardedForHeader != "" {
+			forwardedFor := strings.Split(forwardedForHeader, ", ")
+			ips = append(ips, forwardedFor...)
+		}
+
+		returnValue := new(returnValueType)
+		returnValue.IpAddresses = ips
+		return c.JSON(http.StatusOK, returnValue)
 	})
 
 	// Start server
